@@ -1,5 +1,5 @@
 {
-    "name": "react/http-client",
+    "name": "dangerlifter/http-client",
     "description": "Event-driven, streaming HTTP client for ReactPHP",
     "keywords": ["http"],
     "license": "MIT",
@@ -19,5 +19,8 @@
         "psr-4": {
             "React\\HttpClient\\": "src"
         }
+    },
+    "replace": {
+        "react/http-client":"0.5.*"
     }
 }
