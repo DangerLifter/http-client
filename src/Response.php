@@ -23,32 +23,31 @@ class Response extends EventEmitter  implements ReadableStreamInterface
     private $headers;
     private $readable = true;
 
-    public function __construct(ReadableStreamInterface $stream, $protocol, $version, $code, $reasonPhrase, $headers)
-    {
-        $this->stream = $stream;
-        $this->protocol = $protocol;
-        $this->version = $version;
-        $this->code = $code;
-        $this->reasonPhrase = $reasonPhrase;
-        $this->headers = $headers;
-        $normalizedHeaders = array_change_key_case($headers, CASE_LOWER);
-
-        if (isset($normalizedHeaders['transfer-encoding']) && strtolower($normalizedHeaders['transfer-encoding']) === 'chunked') {
-            $this->stream = new ChunkedStreamDecoder($stream);
-
-            foreach ($this->headers as $key => $value) {
-                if (strcasecmp('transfer-encoding', $key) === 0) {
-                    unset($this->headers[$key]);
-                    break;
-                }
-            }
-        }
-
-        $this->stream->on('data', array($this, 'handleData'));
-        $this->stream->on('error', array($this, 'handleError'));
-        $this->stream->on('end', array($this, 'handleEnd'));
-        $this->stream->on('close', array($this, 'handleClose'));
-    }
+	public function __construct(ReadableStreamInterface $stream, $protocol, $version, $code, $reasonPhrase, $headers)
+	{
+		$this->stream = $stream;
+		$this->protocol = $protocol;
+		$this->version = $version;
+		$this->code = $code;
+		$this->reasonPhrase = $reasonPhrase;
+		$this->headers = $headers;
+		$normalizedHeaders = array_change_key_case($headers, CASE_LOWER);
+		if (isset($normalizedHeaders['transfer-encoding'])) {
+			if ($this->isChunked($normalizedHeaders['transfer-encoding'])) {
+				$this->stream = new ChunkedStreamDecoder($stream);
+				foreach ($this->headers as $key => $value) {
+					if (strcasecmp('transfer-encoding', $key) === 0) {
+						unset($this->headers[$key]);
+						break;
+					}
+				}
+			}
+		}
+		$this->stream->on('data', array($this, 'handleData'));
+		$this->stream->on('error', array($this, 'handleError'));
+		$this->stream->on('end', array($this, 'handleEnd'));
+		$this->stream->on('close', array($this, 'handleClose'));
+	}
 
     public function getProtocol()
     {
@@ -156,4 +155,17 @@ class Response extends EventEmitter  implements ReadableStreamInterface
 
         return $dest;
     }
+
+	private function isChunked($transferEncoding)
+	{
+		if (is_array($transferEncoding)) {
+			foreach ($transferEncoding as $value) {
+				$isChunked = strtolower($value) === 'chunked';
+				if ($isChunked) return true;
+			}
+		} elseif (is_string($transferEncoding)) {
+			return strtolower($transferEncoding) === 'chunked';
+		}
+		return false;
+	}
 }
